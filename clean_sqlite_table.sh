@@ -3,7 +3,8 @@
 # Turns out SQLite does not like databases with tens of millions lines.
 # Especially so when the database file resides on a slow medium, such
 # as a CompactFlash card. This script helps clean up a table when the DB
-# must not block when doing the cleanup.
+# must not block when doing the cleanup. Running VACUUM; after this script
+# is recommended, although it will make the DB block.
 
 set -eu
 
@@ -11,8 +12,18 @@ set -eu
 DB_FILE=/data/avdb
 # Table name in database
 DB_TABLE=deviceproperty_log
+
+# Spare this many lines in the database. keeping the ones with ther largest ID.
+# 100k to 1M lines should be the absolute maximum if running from a CF card
+# Disclaimer: When measured, a 1x100 inner join over indexed columns took around one second when
+# the larger table had ~10M rows on a CF card.
 NUM_LINES_TO_KEEP=10000
-DELETE_BATCH_SIZE=100
+# Delete lines this many rows at a time. Smaller values here result in faster transactions,
+# lock the DB for a shorter time and require less space on the card. A larger value
+# makes the DB block longer and require more space (possibly running out of it) but makes
+# the overall operation faster
+DELETE_BATCH_SIZE=1000
+
 
 first=$(sqlite3 "${DB_FILE}" "select id from '${DB_TABLE}' order by id asc limit 1;")
 last=$(sqlite3 "${DB_FILE}" "select max(1, id - ${NUM_LINES_TO_KEEP}) from '${DB_TABLE}' order by id desc limit 1;")
