@@ -18,7 +18,7 @@ first=$(sqlite3 "${DB_FILE}" "select id from '${DB_TABLE}' order by id asc limit
 last=$(sqlite3 "${DB_FILE}" "select max(1, id - ${NUM_LINES_TO_KEEP}) from '${DB_TABLE}' order by id desc limit 1;")
 
 
-for i in $(seq $first $DELETE_BATCH_SIZE $last); do
+for i in $(seq $first $DELETE_BATCH_SIZE $last; echo $last); do
 
     echo -n "Deleting ${i}/${last}"
     until sqlite3 "${DB_FILE}" "delete from '${DB_TABLE}' where id < $i;" 2>/dev/null ; do
